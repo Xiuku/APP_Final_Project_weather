@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DataStore.init();
   runApp(const MyApp());
 }
 
@@ -28,42 +30,92 @@ class MyApp extends StatelessWidget {
 
 // 資料儲存類別
 class DataStore {
-  static List<Map<String, String>> users = [];
-  static Map<String, List<String>> subscriptions = {};
+  static SharedPreferences? _prefs;
   static String? currentUserId;
 
-  static String signup(String id, String email) {
+  static Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
+    currentUserId = _prefs?.getString('currentUserId');
+  }
+  static List<dynamic> getUsers(){
+    String? usersStr = _prefs?.getString('users');
+    return usersStr != null ? jsonDecode(usersStr) : [] ;
+  }
+  static Map<String, dynamic> getSubscriptions(){
+    String? subsStr = _prefs?.getString('subscriptions');
+    return subsStr != null ? jsonDecode(subsStr) : {} ;
+  }
+
+  static Future<String> signup(String id, String email) async{
+    if (_prefs==null) await init();
+
+    List<dynamic> users = getUsers();
     bool exists = users.any((u) => u['id'] == id || u['email'] == email);
     if (exists) {
       return "此ID或email已經註冊過";
     }
     users.add({'id': id, 'email': email});
-    subscriptions[id] = [];
+    await _prefs?.setString('users', jsonEncode(users));
+
+    Map<String, dynamic> subs = getSubscriptions();
+    subs[id] = [];
+    await _prefs?.setString('subscriptions', jsonEncode(subs));
+
     return "註冊成功";
   }
 
-  static bool login(String id, String email) {
+  static Future<bool> login(String id, String email) async {
+    if (_prefs == null) await init();
+
+    List<dynamic> users = getUsers();
     bool valid = users.any((u) => u['id'] == id && u['email'] == email);
     if (valid) {
       currentUserId = id;
+      await _prefs?.setString('currentUserId', id);
+
       return true;
     }
     return false;
   }
 
-  static String subscribeCity(String city) {
+  static Future<String> subscribeCity(String city) async {
     if (currentUserId == null) return "請先登入";
-    if (subscriptions[currentUserId]!.contains(city)) {
+    if (_prefs == null) await init();
+
+    Map<String, dynamic> subs = getSubscriptions();
+    List<dynamic> userSubs = subs[currentUserId] ?? [] ;
+
+    if (userSubs.contains(city)) {
       return "此城市已經登記過";
     }
-    subscriptions[currentUserId]!.add(city);
+
+    userSubs.add(city);
+    subs[currentUserId!] = userSubs;
+    await _prefs?.setString('subscriptions', jsonEncode(subs));
+
     return "訂閱成功";
   }
 
-  static void removeCity(String city) {
-    if (currentUserId != null) {
-      subscriptions[currentUserId]?.remove(city);
-    }
+  static Future<List<String>> getMyCities() async {
+    if (currentUserId == null) return [];
+    if (_prefs == null) await init();
+
+    Map<String, dynamic> subs = getSubscriptions();
+    List<dynamic> userSubs = subs[currentUserId] ?? [] ;
+
+    return List<String>.from(userSubs);
+  }
+
+  static Future<void> removeCity(String city) async {
+    if (currentUserId == null) return;
+    if(_prefs == null) await init();
+
+    Map<String, dynamic> subs = getSubscriptions();
+    List<dynamic> userSubs = subs[currentUserId] ?? [] ;
+
+    userSubs.remove(city);
+    subs[currentUserId!] = userSubs;
+    await _prefs?.setString('subscriptions', jsonEncode(subs));
   }
 }
 
@@ -108,7 +160,10 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const UserPage()));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => const UserPage())
+                          ).then((_) {
+                            setState(() {});
+                          });
                         },
                         icon: const Icon(Icons.person),
                         label: Text(DataStore.currentUserId ?? "Login / Sign up"),
@@ -119,7 +174,10 @@ class _HomePageState extends State<HomePage> {
                           if (DataStore.currentUserId == null) {
                             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("請先登入")));
                           } else {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscribedCitiesPage()));
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscribedCitiesPage())
+                            ).then((_) {
+                              setState(() {});
+                            });
                           }
                         },
                         icon: const Icon(Icons.location_city),
@@ -186,8 +244,9 @@ class _UserPageState extends State<UserPage> {
   String message = "";
   bool isError = false;
 
-  void handleLogin() {
-    bool success = DataStore.login(idController.text, emailController.text);
+  void handleLogin() async {
+    bool success = await DataStore.login(idController.text, emailController.text);
+    if (!mounted) return;
     setState(() {
       if (success) {
         message = "登入成功";
@@ -200,8 +259,9 @@ class _UserPageState extends State<UserPage> {
     });
   }//檢查login
 
-  void handleSignup() {
-    String result = DataStore.signup(idController.text, emailController.text);
+  void handleSignup() async {
+    String result = await DataStore.signup(idController.text, emailController.text);
+    if (!mounted) return;
     setState(() {
       message = result;
       isError = result.contains("已經註冊");
@@ -346,9 +406,10 @@ class _WeatherPageState extends State<WeatherPage> {
     }
   }
 
-  void subscribeCity() {
+  void subscribeCity() async {
     String cityToSave = normalizedCityName ?? widget.cityName;
-    String result = DataStore.subscribeCity(cityToSave);
+    String result = await DataStore.subscribeCity(cityToSave);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result)));
     if (result == "訂閱成功") {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const SubscribedCitiesPage()));
@@ -506,7 +567,7 @@ class _WeatherPageState extends State<WeatherPage> {
                         aspectRatio: 16/9,
                         autoPlayCurve: Curves.fastOutSlowIn,
                         enableInfiniteScroll: true,
-                        autoPlayAnimationDuration: Duration(milliseconds: 1000,),
+                        autoPlayAnimationDuration: Duration(milliseconds: 600,),
                         viewportFraction: 0.5,
                         onPageChanged: (position, reason) {
                           print('Current position: $position');
@@ -585,8 +646,14 @@ class _SubscribedCitiesPageState extends State<SubscribedCitiesPage> {
 
   Future<void> loadSubscribedCities() async {
     final userId = DataStore.currentUserId;
-    if (userId == null) return;
-    final cityNames = DataStore.subscriptions[userId] ?? [];
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final cityNames = await DataStore.getMyCities();
     List<Map<String, dynamic>> tempCities = [];
 
     for (String city in cityNames) {
@@ -623,8 +690,8 @@ class _SubscribedCitiesPageState extends State<SubscribedCitiesPage> {
     }
   }
 
-  void removeCity(String city) {
-    DataStore.removeCity(city);
+  void removeCity(String city) async {
+    await DataStore.removeCity(city);
     loadSubscribedCities();
   }
 
