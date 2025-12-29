@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -85,14 +87,14 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(fontSize: 48, color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.indigoAccent.withOpacity(0.3),
-      ),
+      ),//最上層Bar
       body: Container(
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/weather-home-background.jpg'),
             fit: BoxFit.cover,
             opacity: 0.8,
-          ),
+          ),//選擇裝飾圖片
         ),
         child: SafeArea(
           child: Center(
@@ -100,7 +102,7 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -110,8 +112,8 @@ class _HomePageState extends State<HomePage> {
                         },
                         icon: const Icon(Icons.person),
                         label: Text(DataStore.currentUserId ?? "Login / Sign up"),
-                      ),
-                      const SizedBox(width: 10),
+                      ),//UserPage Button
+                      SizedBox(width: 10),
                       ElevatedButton.icon(
                         onPressed: () {
                           if (DataStore.currentUserId == null) {
@@ -122,10 +124,10 @@ class _HomePageState extends State<HomePage> {
                         },
                         icon: const Icon(Icons.location_city),
                         label: const Text("My Cities"),
-                      ),
+                      ),//SubCityPage Button
                     ],
                   ),
-                  const SizedBox(height: 50),
+                  SizedBox(height: 50),
                   Container(
                     width: 300,
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -141,7 +143,7 @@ class _HomePageState extends State<HomePage> {
                         hintText: 'Search for a city',
                         hintStyle: TextStyle(fontSize: 16),
                         border: InputBorder.none,
-                      ),
+                      ),//城市名輸入框
                       onFieldSubmitted: (value) {
                         if (value.isNotEmpty) {
                           Navigator.push(context, MaterialPageRoute(builder: (context) => WeatherPage(cityName: value)));
@@ -149,17 +151,17 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   ElevatedButton(
-                    style: ElevatedButton.styleFrom(foregroundColor: Colors.blueAccent),
+                    style: ElevatedButton.styleFrom(foregroundColor: Colors.black87),
                     onPressed: () {
                       if (searchController.text.isNotEmpty) {
                         Navigator.push(context, MaterialPageRoute(builder: (context) => WeatherPage(cityName: searchController.text)));
                       }
                     },
                     child: const Text("Search"),
-                  ),
-                  const SizedBox(height: 50),
+                  ),//Search Button
+                  SizedBox(height: 50),
                 ],
               ),
             ),
@@ -196,7 +198,7 @@ class _UserPageState extends State<UserPage> {
         isError = true;
       }
     });
-  }
+  }//檢查login
 
   void handleSignup() {
     String result = DataStore.signup(idController.text, emailController.text);
@@ -204,7 +206,7 @@ class _UserPageState extends State<UserPage> {
       message = result;
       isError = result.contains("已經註冊");
     });
-  }
+  }//檢查Signup
 
   @override
   Widget build(BuildContext context) {
@@ -230,12 +232,12 @@ class _UserPageState extends State<UserPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.account_circle, size: 100, color: Colors.grey),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               TextFormField(
                 controller: idController,
                 decoration: const InputDecoration(labelText: "User ID", prefixIcon: Icon(Icons.person)),
-              ),
-              const SizedBox(height: 10),
+              ),//ID input
+              SizedBox(height: 10),
               TextFormField(
                 controller: emailController,
                 decoration: InputDecoration(
@@ -243,20 +245,21 @@ class _UserPageState extends State<UserPage> {
                   prefixIcon: const Icon(Icons.email),
                   errorText: isError ? message : null,
                 ),
-              ),
-              const SizedBox(height: 10),
+              ),//Email input
+              SizedBox(height: 10),
               if (!isError && message.isNotEmpty)
                 Text(message, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(onPressed: handleSignup, child: const Text("Sign up")),
+                  //sign up Button
                   ElevatedButton(
                     onPressed: handleLogin,
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
                     child: const Text("Login"),
-                  ),
+                  ),//Login Button
                 ],
               ),
             ],
@@ -282,6 +285,7 @@ class _WeatherPageState extends State<WeatherPage> {
   final String authority = "api.openweathermap.org";
   final String weatherPath = "/data/2.5/weather";
   final String forecastPath = "/data/2.5/forecast";
+  //dataGet API
 
   Map<String, dynamic>? weatherData;
   List<dynamic>? forecastList;
@@ -427,59 +431,90 @@ class _WeatherPageState extends State<WeatherPage> {
                       style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                  ),//Now City
                   IconButton(
                     icon: const Icon(Icons.add_circle, size: 40, color: Colors.white),
                     onPressed: subscribeCity,
-                  ),
+                  ),//Sub Button
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text("$tempRound°C", style: const TextStyle(fontSize: 80, color: Colors.white)),
-                  const SizedBox(width: 20),
+                  //avg_temp Show
+                  SizedBox(width: 20),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [const Icon(Icons.cloud, color: Colors.white), const SizedBox(width: 10), Text(weatherMain, style: const TextStyle(fontSize: 20, color: Colors.white))]),
-                      Row(children: [const Icon(Icons.thermostat, color: Colors.white), const SizedBox(width: 10), Text("$minTemp° - $maxTemp°", style: const TextStyle(fontSize: 20, color: Colors.white))]),
-                      Row(children: [const Icon(Icons.air, color: Colors.white), const SizedBox(width: 10), Text("$windSpeed m/s", style: const TextStyle(fontSize: 20, color: Colors.white))]),
+                      Row(children: [const Icon(Icons.cloud, color: Colors.white), SizedBox(width: 10), Text(weatherMain, style: const TextStyle(fontSize: 20, color: Colors.white))]),
+                      Row(children: [const Icon(Icons.thermostat, color: Colors.white), SizedBox(width: 10), Text("$minTemp° - $maxTemp°", style: const TextStyle(fontSize: 20, color: Colors.white))]),
+                      Row(children: [const Icon(Icons.air, color: Colors.white), SizedBox(width: 10), Text("$windSpeed m/s", style: const TextStyle(fontSize: 20, color: Colors.white))]),
                     ],
-                  )
+                  )//Row Shows info
                 ],
               ),
               const Divider(color: Colors.white54),
-              const Text("5-DAY FORECAST", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 140,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: forecastList?.length ?? 0,
-                  itemBuilder: (context, index) {
-                    final item = forecastList![index];
-                    final dateTxt = item['dt_txt'].split(" ")[0].substring(5); // 只取 MM-DD
-                    final fTemp = item['main']['temp'].round();
-                    final fWeather = item['weather'][0]['main'];
-
-                    return Container(
-                      width: 100,
-                      margin: const EdgeInsets.symmetric(horizontal: 5),
-                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(15)),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(dateTxt, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                          const SizedBox(height: 10),
-                          Icon(getWeatherIcon(fWeather), size: 35, color: Colors.white),
-                          const SizedBox(height: 10),
-                          Text("$fTemp°", style: const TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    );
-                  },
+              const Text("5-DAY FORECAST", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.white)),
+              //Forecast
+              SizedBox(height: 10),
+              Container(
+                width: MediaQuery.of(context).size.width*0.98,
+                margin: EdgeInsets.only(top: 15),
+                child: Column(
+                  children: [
+                    CarouselSlider.builder(
+                      itemCount: forecastList?.length ?? 0,
+                      itemBuilder: (context, index, realIndex) {
+                        final item = forecastList![index];
+                        final dateTxt = item['dt_txt'].split(" ")[0].substring(5); // MM-DD
+                        final fTemp = item['main']['temp'].round();
+                        final fWeather = item['weather'][0]['main'];
+                        //fixed data
+                        return Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(horizontal: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white24,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(width: 10,),
+                              Image.asset(getWeatherIcon(fWeather),width: 60,height: 60,fit: BoxFit.contain,),
+                              //weather Image
+                              SizedBox(width: 10,),
+                              Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(dateTxt, style: const TextStyle(fontSize: 30,fontWeight: FontWeight.bold, color: Colors.white)),
+                                  SizedBox(height: 10),
+                                  Text("$fTemp°C", style: const TextStyle(fontSize: 24,fontWeight: FontWeight.bold,color: Colors.white)),
+                                ],
+                              ),//date and temp
+                            ],
+                          ),
+                        );
+                      },
+                      options: CarouselOptions(
+                        height: 140,
+                        autoPlay: true,
+                        enlargeCenterPage: true,
+                        aspectRatio: 16/9,
+                        autoPlayCurve: Curves.fastOutSlowIn,
+                        enableInfiniteScroll: true,
+                        autoPlayAnimationDuration: Duration(milliseconds: 1000,),
+                        viewportFraction: 0.5,
+                        onPageChanged: (position, reason) {
+                          print('Current position: $position');
+                          print('Change reason: $reason');
+                        },
+                      ),//auto Run、focus...
+                    ),
+                  ],
                 ),
               ),
               const Spacer(),
@@ -501,28 +536,28 @@ class _WeatherPageState extends State<WeatherPage> {
                         Text("Weather Reminder", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                       ],
                     ),
-                    const SizedBox(height: 5),
+                    SizedBox(height: 5),
                     Text(
                       getWeatherAdvice(temp, weatherMain),
                       style: const TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ],
-                ),
+                ),//notice info
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
             ],
           ),
         ),
       ),
     );
   }
-  IconData getWeatherIcon(String main) {
+  String getWeatherIcon(String main) {
     switch (main.toLowerCase()) {
-      case 'clouds': return Icons.cloud;
-      case 'rain': return Icons.water_drop;
-      case 'clear': return Icons.wb_sunny;
-      case 'snow': return Icons.ac_unit;
-      default: return Icons.cloud;
+      case 'clouds': return 'assets/clouds.png';
+      case 'rain': return 'assets/rain.png';
+      case 'clear': return 'assets/clear.png';
+      case 'snow': return 'assets/snow.png';
+      default: return 'assets/clouds.png';
     }
   }
 }
@@ -626,44 +661,45 @@ class _SubscribedCitiesPageState extends State<SubscribedCitiesPage> {
                       context,
                       MaterialPageRoute(builder: (context) => WeatherPage(cityName: city['displayName']))
                   );
-                },
+                },//tap city card, and Route to
                 child: Stack(
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(10.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.cloud, size: 40, color: Colors.deepPurple),
-                          const SizedBox(width: 10),
+                          Image.asset(getWeatherIcon("${city['weather']}"),width: 45,height: 45,fit: BoxFit.contain,),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                SizedBox(height: 8,),
                                 Text(
                                   "${city['name']}",
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   "${city['country']}",
-                                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                  style: const TextStyle(fontSize: 16, color: Colors.black54),
                                 ),
                                 Text("${city['temp']}°C", style: const TextStyle(fontSize: 16)),
-                              ],
+                              ],//City info
                             ),
                           ),
                         ],
                       ),
                     ),
                     Positioned(
-                      top: 0,
-                      right: 0,
+                      top: -8,
+                      right: -5,
                       child: IconButton(
                         icon: const Icon(Icons.cancel, color: Colors.redAccent),
                         onPressed: () => removeCity(city['displayName']),
                       ),
-                    )
+                    )//delete button
                   ],
                 ),
               ),
@@ -672,5 +708,14 @@ class _SubscribedCitiesPageState extends State<SubscribedCitiesPage> {
         ),
       ),
     );
+  }
+  String getWeatherIcon(String main) {
+    switch (main.toLowerCase()) {
+      case 'clouds': return 'assets/clouds.png';
+      case 'rain': return 'assets/rain.png';
+      case 'clear': return 'assets/clear.png';
+      case 'snow': return 'assets/snow.png';
+      default: return 'assets/clouds.png';
+    }
   }
 }
