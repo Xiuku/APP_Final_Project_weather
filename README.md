@@ -1,10 +1,10 @@
 # final_project
 
-A new Flutter project.
+The Flutter final project for course 114-1 .
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project is the starting point for developing weather monitoring applications using Flutter..
 
 A few resources to get you started if this is your first Flutter project:
 
